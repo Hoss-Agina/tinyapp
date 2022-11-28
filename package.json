@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/Hoss-Agina/tinyapp/issues"
   },
-  "homepage": "https://github.com/Hoss-Agina/tinyapp#readme"
+  "homepage": "https://github.com/Hoss-Agina/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
