@@ -23,17 +23,17 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
-  res.render("urls_index", templateVars)
+  res.render("urls_index", templateVars);
  });
 
-app.get("/set", (req, res) => {
-  const a = 1;
-  res.send(`a = ${a}`);
- });
+// app.get("/set", (req, res) => {
+//   const a = 1;
+//   res.send(`a = ${a}`);
+//  });
  
- app.get("/fetch", (req, res) => {
-  res.send(`a = ${a}`);
- });
+//  app.get("/fetch", (req, res) => {
+//   res.send(`a = ${a}`);
+//  });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
