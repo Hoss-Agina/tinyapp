@@ -12,7 +12,7 @@ const urlDatabase = {
 
 function generateRandomString() {
   const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  result = "";
+  let result = "";
   for (let i = 1; i <= 6; i++) {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
@@ -42,15 +42,28 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  res.redirect(`/urls/${shortURL}`);
 });
 
  app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
-  res.render("urls_show", templateVars);
+  if (urlDatabase[req.params.id]) {
+    res.render("urls_show", templateVars);
+  } else {
+    res.send("<html><body>The id you requested does not exist and is invalid</b></body></html>\n");
+  }
 });
 
+app.get("/u/:id", (req, res) => {
+  const longURL = urlDatabase[req.params.id];
+  if (longURL) {
+    res.redirect(longURL);
+  } else {
+    res.send("<html><body>The id you requested does not exist and is invalid</b></body></html>\n");
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
