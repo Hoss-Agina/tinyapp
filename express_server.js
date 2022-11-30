@@ -107,8 +107,28 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  let userExists = false; 
+
+  if (!email || !password) {
+    res.status(400).send('The email address and/or password fields can not be empty');
+    return;
+  }
+
+  for (let user in users) {
+    if (email === users[user]["email"]) {
+      userExists = true;
+    }
+  }
+  console.log("userExists:", userExists);
+  if (userExists) {
+    res.status(400).send('The email address already exists!');
+    return;
+  }
+
   const id = generateRandomString();
-  users[id] = {id: id, email: req.body.email, password: req.body.password };
+  users[id] = {id: id, email: email, password: password };
   console.log(users);
   res.cookie("user_id", id);
   res.redirect("/urls");
