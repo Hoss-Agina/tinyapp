@@ -1,8 +1,10 @@
 const express = require("express");
+const cookieParser = require('cookie-parser')
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs")
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 const urlDatabase = {
@@ -76,6 +78,12 @@ app.post("/urls/:id", (req, res) => {
   urlDatabase[id] = req.body.longURL;
   res.redirect(`/urls`);
 });
+
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect("/urls");
+});
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
