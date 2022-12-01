@@ -41,10 +41,6 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 app.get("/urls", (req, res) => {
   const templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase };
   res.render("urls_index", templateVars);
@@ -52,11 +48,20 @@ app.get("/urls", (req, res) => {
 
 
  app.get("/urls/new", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] }
+  const user = users[req.cookies["user_id"]]
+  const templateVars = { user: user }
+  if (!user) {
+    res.redirect("/login");
+  }
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  if (!user) {
+    res.send("You can not shorten URLS because you're NOT registered/Logged in");
+    return;
+  }
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
   res.redirect(`/urls/${shortURL}`);
@@ -67,7 +72,7 @@ app.post("/urls", (req, res) => {
   if (urlDatabase[req.params.id]) {
     res.render("urls_show", templateVars);
   } else {
-    res.send("<html><body>The id you requested does not exist and is invalid</b></body></html>\n");
+    res.send("The id you requested does not exist and is invalid\n");
   }
 });
 
@@ -76,7 +81,7 @@ app.get("/u/:id", (req, res) => {
   if (longURL) {
     res.redirect(longURL);
   } else {
-    res.send("<html><body>The id you requested does not exist and is invalid</b></body></html>\n");
+    res.send("The id you requested does not exist and is invalid\n");
   }
 });
 
@@ -92,13 +97,13 @@ app.post("/urls/:id", (req, res) => {
   res.redirect(`/urls`);
 });
 
-// app.post("/logout", (req, res) => {
-//   res.clearCookie("username");
-//   res.redirect("/urls");
-// });
-
 app.get("/register", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] }
+  const user = users[req.cookies["user_id"]]
+  const templateVars = { user: user }
+  if (user) {
+    res.redirect("/urls");
+    return;
+  }
   res.render("registration_page",templateVars);
 });
 
@@ -130,7 +135,12 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] }
+  const user = users[req.cookies["user_id"]]
+  const templateVars = { user: user };
+  if (user) {
+    res.redirect("/urls");
+    return;
+  }
   res.render("login_page", templateVars);
 });
 
