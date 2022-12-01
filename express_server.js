@@ -92,18 +92,14 @@ app.post("/urls/:id", (req, res) => {
   res.redirect(`/urls`);
 });
 
-// app.post("/login", (req, res) => {
-//   res.cookie('username', req.body.username);
-//   res.redirect("/urls");
-// });
-
 // app.post("/logout", (req, res) => {
 //   res.clearCookie("username");
 //   res.redirect("/urls");
 // });
 
 app.get("/register", (req, res) => {
-  res.render("registration_page");
+  const templateVars = { user: users[req.cookies["user_id"]] }
+  res.render("registration_page",templateVars);
 });
 
 app.post("/register", (req, res) => {
@@ -129,13 +125,53 @@ app.post("/register", (req, res) => {
 
   const id = generateRandomString();
   users[id] = {id: id, email: email, password: password };
-  console.log(users);
   res.cookie("user_id", id);
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
-  res.render("login_page");
+  const templateVars = { user: users[req.cookies["user_id"]] }
+  res.render("login_page", templateVars);
+});
+
+app.post("/login", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  let userExists = false;
+  let foundUser;
+
+  //if Email and password fields are empty, return this message
+  if (!email || !password) {
+    return res.status(400).send('The email address and/or password fields can not be empty');
+  }
+
+  //Checks if email exists on the system and assigns if it is, it assigns user ID to foundUser
+  for (let user in users) {
+    if (email === users[user]["email"]) {
+      userExists = true;
+      foundUser = users[user];
+    }
+  }
+
+  //Condition will occur only if email address is not on the system
+  if (!userExists) {
+    return res.status(403).send('This user does not exist on the system');
+  }
+
+  //Condition will occur if user is on the system but password is incorrect
+  if (foundUser['password'] !== password) {
+    return res.status(403).send('This user exists on the system but password is incorrect');
+  }
+
+  //Happy path that userExists and password is correct
+  const id = foundUser["id"];
+  res.cookie('user_id', id);
+  res.redirect("/urls");
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect("/login");
 });
 
 app.listen(PORT, () => {
