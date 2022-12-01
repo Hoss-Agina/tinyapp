@@ -1,5 +1,6 @@
 const express = require("express");
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -193,6 +194,7 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   let userExists = false; 
 
   if (!email || !password) {
@@ -212,7 +214,7 @@ app.post("/register", (req, res) => {
   }
 
   const id = generateRandomString();
-  users[id] = {id: id, email: email, password: password };
+  users[id] = {id: id, email: email, password: hashedPassword };
   res.cookie("user_id", id);
   res.redirect("/urls");
 });
@@ -252,7 +254,7 @@ app.post("/login", (req, res) => {
   }
 
   //Condition will occur if user is on the system but password is incorrect
-  if (foundUser['password'] !== password) {
+  if (!bcrypt.compareSync(password, foundUser['password'])) {
     return res.status(403).send('This user exists on the system but password is incorrect');
   }
 
