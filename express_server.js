@@ -103,7 +103,7 @@ app.post("/urls", (req, res) => {
   const shortURL = req.params.id;
   //Condition to send message to user to sign in if they are not
   if (!user) {
-    return res.send("You must be logged in first");
+    return res.send("You must login first");
   }
   //Condition to check if shortURL exists in the database
   if (!urlDatabase[shortURL]) {
@@ -128,13 +128,54 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
+  const user = users[req.cookies["user_id"]];
   const id = req.params.id;
+  let idExists = false;
+
+  //Iterating through userDatabase to check if id exists
+  for (let idOfDatabase in urlDatabase) {
+    if (idOfDatabase === id) {
+      idExists = true;
+    }
+  }
+  //Condition to return relevant error if id does not exist
+  if (!idExists) {
+    return res.send("The id does not exist");
+  }
+  //Condition to return that customer must login first if they are not signed in
+  if (!user) {
+    return res.send("You must login first")
+  }
+  //Condition to return that user does not own shortID to make changes
+  if (urlDatabase[id]["userID"] !== user.id) {
+    return res.send("You do not own URL to make changes")
+  }
   delete urlDatabase[id];
   res.redirect(`/urls`);
 });
 
 app.post("/urls/:id", (req, res) => {
+  const user = users[req.cookies["user_id"]];
   const id = req.params.id;
+  let idExists = false;
+  //Iterating through userDatabase to check if id exists
+  for (let idOfDatabase in urlDatabase) {
+    if (idOfDatabase === id) {
+      idExists = true;
+    }
+  }
+  //Condition to return relevant error if id does not exist
+  if (!idExists) {
+    return res.send("The id does not exist");
+  }
+  //Condition to return that customer must login first if they are not signed in
+  if (!user) {
+    return res.send("You must login first")
+  }
+  //Condition to return that user does not own shortID to make changes
+  if (urlDatabase[id]["userID"] !== user.id) {
+    return res.send("You do not own URL to make changes")
+  }
   urlDatabase[id]["longURL"] = req.body.longURL;
   res.redirect(`/urls`);
 });
