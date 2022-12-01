@@ -99,12 +99,23 @@ app.post("/urls", (req, res) => {
 });
 
  app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]["longURL"], user: users[req.cookies["user_id"]] };
-  if (urlDatabase[req.params.id]["longURL"]) {
-    res.render("urls_show", templateVars);
-  } else {
-    res.send("The id you requested does not exist and is invalid\n");
+  const user = users[req.cookies["user_id"]];
+  const shortURL = req.params.id;
+  //Condition to send message to user to sign in if they are not
+  if (!user) {
+    return res.send("You must be logged in first");
   }
+  //Condition to check if shortURL exists in the database
+  if (!urlDatabase[shortURL]) {
+    return res.send("The short URL does not exist in the system")
+  }
+  //Condition to check if shortURL belongs to the user
+  if (user.id !== urlDatabase[shortURL]["userID"]) {
+    return res.send("the short URL exists but you do not own it")
+  }
+  //Happy path to display url details to the owner
+  const templateVars = { id: req.params.id, longURL: urlDatabase[shortURL]["longURL"], user: users[req.cookies["user_id"]] };
+  res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
