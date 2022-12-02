@@ -1,21 +1,21 @@
 const express = require("express");
-const cookieSession = require('cookie-session')
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 
-//Helper functions 
-const { getUserByEmail } = require("./helper"); 
+//Helper functions
+const { getUserByEmail } = require("./helper");
 const { generateRandomString } = require("./helper");
 const { urlsForUser } = require("./helper");
 
 const app = express();
 const PORT = 8080; // default port 8080
 
-app.set("view engine", "ejs")
+app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieSession({
   name: 'session',
   keys: ["my secret"],
-}))
+}));
 
 const urlDatabase = {
   b6UTxQ: {
@@ -54,11 +54,11 @@ app.get("/urls", (req, res) => {
   const filteredURLDatabase = urlsForUser(user["id"], urlDatabase);
   const templateVars = { user: user, urls: filteredURLDatabase };
   res.render("urls_index", templateVars);
- });
+});
 
- app.get("/urls/new", (req, res) => {
-  const user = users[req.session.user_id]
-  const templateVars = { user }
+app.get("/urls/new", (req, res) => {
+  const user = users[req.session.user_id];
+  const templateVars = { user };
   if (!user) {
     res.redirect("/login");
   }
@@ -90,7 +90,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
- app.get("/urls/:id", (req, res) => {
+app.get("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   const shortURL = req.params.id;
   //Condition to send message to user to sign in if they are not
@@ -99,11 +99,11 @@ app.post("/urls", (req, res) => {
   }
   //Condition to check if shortURL exists in the database
   if (!urlDatabase[shortURL]) {
-    return res.send("The short URL does not exist in the system")
+    return res.send("The short URL does not exist in the system");
   }
   //Condition to check if shortURL belongs to the user
   if (user.id !== urlDatabase[shortURL]["userID"]) {
-    return res.send("the short URL exists but you do not own it")
+    return res.send("the short URL exists but you do not own it");
   }
   //Happy path to display url details to the owner
   const templateVars = { id: req.params.id, longURL: urlDatabase[shortURL]["longURL"], user: users[req.session.user_id] };
@@ -139,11 +139,11 @@ app.post("/urls/:id/delete", (req, res) => {
   }
   //Condition to return that customer must login first if they are not signed in
   if (!user) {
-    return res.send("You must login first")
+    return res.send("You must login first");
   }
   //Condition to return that user does not own shortID to make changes
   if (urlDatabase[id]["userID"] !== user.id) {
-    return res.send("You do not own URL to make changes")
+    return res.send("You do not own URL to make changes");
   }
   delete urlDatabase[id];
   res.redirect(`/urls`);
@@ -165,13 +165,13 @@ app.post("/urls/:id", (req, res) => {
   }
   //Condition to return that customer must login first if they are not signed in
   if (!user) {
-    return res.send("You must login first")
+    return res.send("You must login first");
   }
   //Condition to return that user does not own shortID to make changes
   if (urlDatabase[id]["userID"] !== user.id) {
-    return res.send("You do not own URL to make changes")
+    return res.send("You do not own URL to make changes");
   }
-  //Happy path to let user make change to URL 
+  //Happy path to let user make change to URL
   const updatedLongURL = req.body.longURL;
   // Condition to check if user left long URL field blank and returns relevant error message
   if (!updatedLongURL) {
@@ -188,8 +188,8 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const user = users[req.session.user_id]
-  const templateVars = { user }
+  const user = users[req.session.user_id];
+  const templateVars = { user };
   if (user) {
     res.redirect("/urls");
     return;
@@ -200,26 +200,26 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const hashedPassword = bcrypt.hashSync(password, 10); 
+  const hashedPassword = bcrypt.hashSync(password, 10);
   //Condition to check if email or password fields are empty
   if (!email || !password) {
     res.status(400).send('The email address and/or password fields can not be empty');
     return;
   }
   //Checking if email is alreeady registered on the system and returning relevant message
-  if (Boolean(getUserByEmail(email, users))) {
+  if (getUserByEmail(email, users)) {
     res.status(400).send('The email address already exists!');
     return;
   }
   //Happy Path to register new user with new email address
   const id = generateRandomString();
   users[id] = {id , email , password: hashedPassword };
-  req.session.user_id = id; 
+  req.session.user_id = id;
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
-  const user = users[req.session.user_id]
+  const user = users[req.session.user_id];
   const templateVars = { user };
   if (user) {
     res.redirect("/urls");
@@ -239,7 +239,7 @@ app.post("/login", (req, res) => {
 
   //Condition will occur only if email address is not on the system
   let foundUser = getUserByEmail(email, users);
-  if (!Boolean(foundUser)) {
+  if (!foundUser) {
     return res.status(403).send('This user does not exist on the system');
   }
 
