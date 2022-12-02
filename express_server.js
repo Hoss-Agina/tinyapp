@@ -112,8 +112,6 @@ app.get("/urls/:id", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   //Condition to check if shortURL exists in database, if it doesn't then it returns relevant error message
-  console.log("urlDatabase checked before passed to /u/:id", urlDatabase);
-  console.log("parameter passed: ",req.params.id);
   if (!urlDatabase[req.params.id]) {
     res.send("This URL does not exist in the system so you won't be redirected anywhere");
     return;
