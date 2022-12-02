@@ -1,6 +1,7 @@
 const express = require("express");
 const cookieSession = require('cookie-session')
 const bcrypt = require("bcryptjs");
+const { getUserByEmail } = require("./helper"); 
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -55,16 +56,6 @@ function urlsForUser(id) {
   }
   return relevantURLDatabase;
 }
-
-const getUserByEmail = function(email, database) {
-  let foundUser = null;
-  for (let user in database) {
-    if (email === database[user]["email"]) {
-      foundUser = users[user];
-    }
-  }
-  return foundUser;
-};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -203,8 +194,7 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  // let userExists = false; 
+  const hashedPassword = bcrypt.hashSync(password, 10); 
   //Condition to check if email or password fields are empty
   if (!email || !password) {
     res.status(400).send('The email address and/or password fields can not be empty');
@@ -248,12 +238,12 @@ app.post("/login", (req, res) => {
   }
 
   //Condition will occur if user is on the system but password is incorrect
-  if (!bcrypt.compareSync(password, foundUser['password'])) {
+  if (!bcrypt.compareSync(password, users[foundUser]['password'])) {
     return res.status(403).send('This user exists on the system but password is incorrect');
   }
 
   //Happy path that userExists and password is correct
-  const id = foundUser["id"];
+  const id = foundUser;
   req.session.user_id = id;
   res.redirect("/urls");
 });
