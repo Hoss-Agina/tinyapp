@@ -1,7 +1,12 @@
 const express = require("express");
 const cookieSession = require('cookie-session')
 const bcrypt = require("bcryptjs");
+
+//Helper functions 
 const { getUserByEmail } = require("./helper"); 
+const { generateRandomString } = require("./helper");
+const { urlsForUser } = require("./helper");
+
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -36,31 +41,6 @@ const users = {
   },
 };
 
-function generateRandomString() {
-  const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let result = "";
-  for (let i = 1; i <= 6; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-}
-
-function urlsForUser(id) {
-  let relevantURLDatabase = {};
-  for (let keyID in urlDatabase) {
-    if (id === urlDatabase[keyID]["userID"]) {
-      relevantURLDatabase[keyID] = {};
-      relevantURLDatabase[keyID]["longURL"] = urlDatabase[keyID]["longURL"];
-      relevantURLDatabase[keyID]["userID"] = urlDatabase[keyID]["userID"];
-    }
-  }
-  return relevantURLDatabase;
-}
-
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
@@ -71,15 +51,14 @@ app.get("/urls", (req, res) => {
     res.send("You must be logged in to see this /urls page");
     return;
   }
-  const filteredURLDatabase = urlsForUser(user["id"]);
-  // console.log("filteredURLDatabase:", filteredURLDatabase);
+  const filteredURLDatabase = urlsForUser(user["id"], urlDatabase);
   const templateVars = { user: user, urls: filteredURLDatabase };
   res.render("urls_index", templateVars);
  });
 
  app.get("/urls/new", (req, res) => {
   const user = users[req.session.user_id]
-  const templateVars = { user: user }
+  const templateVars = { user }
   if (!user) {
     res.redirect("/login");
   }
@@ -87,14 +66,26 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
+  const longURL = req.body.longURL;
   const user = users[req.session.user_id];
   if (!user) {
     res.send("You can not shorten URLS because you're NOT registered/Logged in");
     return;
   }
+  // Condition to check if user left long URL field blank and returns relevant error message
+  if (!req.body.longURL) {
+    res.send("You can not leave the long URL blank");
+    return;
+  }
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {};
-  urlDatabase[shortURL]["longURL"] = req.body.longURL;
+  // Condition to check if user included https:// or http:// before entering URL and if not, it will insert it for them
+  if (!longURL.includes("https://") && !longURL.includes("http://")) {
+    urlDatabase[shortURL]["longURL"] = "https://" + longURL;
+    urlDatabase[shortURL]["userID"] = user["id"];
+    return res.redirect(`/urls/${shortURL}`);
+  }
+  urlDatabase[shortURL]["longURL"] = longURL;
   urlDatabase[shortURL]["userID"] = user["id"];
   res.redirect(`/urls/${shortURL}`);
 });
@@ -120,12 +111,15 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id]["longURL"];
-  if (longURL) {
-    res.redirect(longURL);
-  } else {
-    res.send("The id you requested does not exist and is invalid\n");
+  //Condition to check if shortURL exists in database, if it doesn't then it returns relevant error message
+  console.log("urlDatabase checked before passed to /u/:id", urlDatabase);
+  console.log("parameter passed: ",req.params.id);
+  if (!urlDatabase[req.params.id]) {
+    res.send("This URL does not exist in the system so you won't be redirected anywhere");
+    return;
   }
+  const longURL = urlDatabase[req.params.id]["longURL"];
+  res.redirect(longURL);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
@@ -177,13 +171,25 @@ app.post("/urls/:id", (req, res) => {
   if (urlDatabase[id]["userID"] !== user.id) {
     return res.send("You do not own URL to make changes")
   }
-  urlDatabase[id]["longURL"] = req.body.longURL;
+  //Happy path to let user make change to URL 
+  const updatedLongURL = req.body.longURL;
+  // Condition to check if user left long URL field blank and returns relevant error message
+  if (!updatedLongURL) {
+    res.send("You can not leave the long URL blank");
+    return;
+  }
+  // Condition to check if user included https:// or http:// before entering URL and if not, it will insert it for them
+  if (!updatedLongURL.includes("https://") && !updatedLongURL.includes("http://")) {
+    urlDatabase[id]["longURL"] = "https://" + updatedLongURL;
+    return res.redirect(`/urls`);
+  }
+  urlDatabase[id]["longURL"] = updatedLongURL;
   res.redirect(`/urls`);
 });
 
 app.get("/register", (req, res) => {
   const user = users[req.session.user_id]
-  const templateVars = { user: user }
+  const templateVars = { user }
   if (user) {
     res.redirect("/urls");
     return;
@@ -207,14 +213,14 @@ app.post("/register", (req, res) => {
   }
   //Happy Path to register new user with new email address
   const id = generateRandomString();
-  users[id] = {id: id, email: email, password: hashedPassword };
+  users[id] = {id , email , password: hashedPassword };
   req.session.user_id = id; 
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
   const user = users[req.session.user_id]
-  const templateVars = { user: user };
+  const templateVars = { user };
   if (user) {
     res.redirect("/urls");
     return;
