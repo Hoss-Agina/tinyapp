@@ -1,22 +1,16 @@
 const express = require("express");
-// const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session')
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs")
-// app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieSession({
   name: 'session',
   keys: ["my secret"],
 }))
 
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -61,6 +55,16 @@ function urlsForUser(id) {
   }
   return relevantURLDatabase;
 }
+
+const getUserByEmail = function(email, database) {
+  let foundUser = null;
+  for (let user in database) {
+    if (email === database[user]["email"]) {
+      foundUser = users[user];
+    }
+  }
+  return foundUser;
+};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -200,27 +204,20 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  let userExists = false; 
+  // let userExists = false; 
   //Condition to check if email or password fields are empty
   if (!email || !password) {
     res.status(400).send('The email address and/or password fields can not be empty');
     return;
   }
-  //Checking if email is alreeady registered on the system
-  for (let user in users) {
-    if (email === users[user]["email"]) {
-      userExists = true;
-    }
-  }
-  //Returning relevenat error message if user tries to register an already registered enmail
-  if (userExists) {
+  //Checking if email is alreeady registered on the system and returning relevant message
+  if (Boolean(getUserByEmail(email, users))) {
     res.status(400).send('The email address already exists!');
     return;
   }
   //Happy Path to register new user with new email address
   const id = generateRandomString();
   users[id] = {id: id, email: email, password: hashedPassword };
-  // res.cookie("user_id", id);
   req.session.user_id = id; 
   res.redirect("/urls");
 });
@@ -238,24 +235,15 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  let userExists = false;
-  let foundUser;
 
   //if Email and password fields are empty, return this message
   if (!email || !password) {
     return res.status(400).send('The email address and/or password fields can not be empty');
   }
 
-  //Checks if email exists on the system and assigns if it is, it assigns user ID to foundUser
-  for (let user in users) {
-    if (email === users[user]["email"]) {
-      userExists = true;
-      foundUser = users[user];
-    }
-  }
-
   //Condition will occur only if email address is not on the system
-  if (!userExists) {
+  let foundUser = getUserByEmail(email, users);
+  if (!Boolean(foundUser)) {
     return res.status(403).send('This user does not exist on the system');
   }
 
@@ -271,7 +259,6 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  // res.clearCookie("user_id");
   req.session = null;
   res.redirect("/login");
 });
