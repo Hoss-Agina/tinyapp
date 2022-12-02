@@ -1,12 +1,17 @@
 const express = require("express");
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session')
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs")
-app.use(cookieParser());
+// app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieSession({
+  name: 'session',
+  keys: ["my secret"],
+}))
 
 // const urlDatabase = {
 //   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -66,7 +71,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   if (!user) {
     res.send("You must be logged in to see this /urls page");
     return;
@@ -78,7 +83,7 @@ app.get("/urls", (req, res) => {
  });
 
  app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies["user_id"]]
+  const user = users[req.session.user_id]
   const templateVars = { user: user }
   if (!user) {
     res.redirect("/login");
@@ -87,7 +92,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   if (!user) {
     res.send("You can not shorten URLS because you're NOT registered/Logged in");
     return;
@@ -100,7 +105,7 @@ app.post("/urls", (req, res) => {
 });
 
  app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   const shortURL = req.params.id;
   //Condition to send message to user to sign in if they are not
   if (!user) {
@@ -115,7 +120,7 @@ app.post("/urls", (req, res) => {
     return res.send("the short URL exists but you do not own it")
   }
   //Happy path to display url details to the owner
-  const templateVars = { id: req.params.id, longURL: urlDatabase[shortURL]["longURL"], user: users[req.cookies["user_id"]] };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[shortURL]["longURL"], user: users[req.session.user_id] };
   res.render("urls_show", templateVars);
 });
 
@@ -129,7 +134,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   const id = req.params.id;
   let idExists = false;
 
@@ -156,7 +161,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   const id = req.params.id;
   let idExists = false;
   //Iterating through userDatabase to check if id exists
@@ -182,7 +187,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const user = users[req.cookies["user_id"]]
+  const user = users[req.session.user_id]
   const templateVars = { user: user }
   if (user) {
     res.redirect("/urls");
@@ -196,31 +201,32 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
   let userExists = false; 
-
+  //Condition to check if email or password fields are empty
   if (!email || !password) {
     res.status(400).send('The email address and/or password fields can not be empty');
     return;
   }
-
+  //Checking if email is alreeady registered on the system
   for (let user in users) {
     if (email === users[user]["email"]) {
       userExists = true;
     }
   }
-  console.log("userExists:", userExists);
+  //Returning relevenat error message if user tries to register an already registered enmail
   if (userExists) {
     res.status(400).send('The email address already exists!');
     return;
   }
-
+  //Happy Path to register new user with new email address
   const id = generateRandomString();
   users[id] = {id: id, email: email, password: hashedPassword };
-  res.cookie("user_id", id);
+  // res.cookie("user_id", id);
+  req.session.user_id = id; 
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
-  const user = users[req.cookies["user_id"]]
+  const user = users[req.session.user_id]
   const templateVars = { user: user };
   if (user) {
     res.redirect("/urls");
@@ -260,12 +266,13 @@ app.post("/login", (req, res) => {
 
   //Happy path that userExists and password is correct
   const id = foundUser["id"];
-  res.cookie('user_id', id);
+  req.session.user_id = id;
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  // res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/login");
 });
 
