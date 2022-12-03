@@ -29,4 +29,14 @@ const urlsForUser = function(id, database) {
   return relevantURLDatabase;
 }
 
-module.exports = { getUserByEmail, generateRandomString, urlsForUser };
+const idURLExists = function(id, database) {
+  //Iterating through userDatabase to check if id exists
+  for (let idOfDatabase in database) {
+    if (idOfDatabase === id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+module.exports = { getUserByEmail, generateRandomString, urlsForUser, idURLExists };

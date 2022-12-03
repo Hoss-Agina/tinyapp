@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const { getUserByEmail } = require("./helper");
 const { generateRandomString } = require("./helper");
 const { urlsForUser } = require("./helper");
+const { idURLExists } = require("./helper");
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -32,17 +33,21 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk"),
   },
 };
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
+});
+
+app.get("/", (req, res) => {
+  res.redirect("login");
 });
 
 app.get("/urls", (req, res) => {
@@ -123,16 +128,9 @@ app.get("/u/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const user = users[req.session.user_id];
   const id = req.params.id;
-  let idExists = false;
 
-  //Iterating through userDatabase to check if id exists
-  for (let idOfDatabase in urlDatabase) {
-    if (idOfDatabase === id) {
-      idExists = true;
-    }
-  }
-  //Condition to return relevant error if id does not exist
-  if (!idExists) {
+  //Condition to check check if id exists in urlDatabase and return relevant error if it does not exist
+  if (!idURLExists(id, urlDatabase)) {
     return res.send("The id does not exist");
   }
   //Condition to return that customer must login first if they are not signed in
@@ -150,15 +148,9 @@ app.post("/urls/:id/delete", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   const id = req.params.id;
-  let idExists = false;
-  //Iterating through userDatabase to check if id exists
-  for (let idOfDatabase in urlDatabase) {
-    if (idOfDatabase === id) {
-      idExists = true;
-    }
-  }
-  //Condition to return relevant error if id does not exist
-  if (!idExists) {
+  
+  //Condition to check check if id exists in urlDatabase and return relevant error if it does not exist
+  if (!idURLExists(id, urlDatabase)) {
     return res.send("The id does not exist");
   }
   //Condition to return that customer must login first if they are not signed in
